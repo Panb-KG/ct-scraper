@@ -1,0 +1,23 @@
+{
+  "name": "ct-scraper",
+  "private": true,
+  "version": "1.0.0",
+  "description": "中国电信阳光采购网招投标信息爬取与查询平台",
+  "scripts": {
+    "dev:scraper": "cd scraper && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "dev": "concurrently \"npm run dev:scraper\" \"npm run dev:server\" \"npm run dev:web\"",
+    "build": "npm run build:server && npm run build:web",
+    "build:server": "cd server && npm install && npm run build",
+    "build:web": "cd web && npm install && npm run build",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:seed": "cd server && npm run db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
