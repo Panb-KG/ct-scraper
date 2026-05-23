@@ -1,0 +1,27 @@
+{
+  "build": {
+    "server": {
+      "path": "./server",
+      "buildCommand": "npm install && npm run build"
+    },
+    "web": {
+      "path": "./web",
+      "buildCommand": "npm install && npm run build"
+    },
+    "scraper": {
+      "path": "./scraper",
+      "buildCommand": "npm install"
+    }
+  },
+  "deploy": {
+    "server": {
+      "port": 3001,
+      "startCommand": "cd server && node dist/index.js",
+      "healthCheck": "/api/health"
+    },
+    "web": {
+      "port": 3000,
+      "startCommand": "cd web && npm start"
+    }
+  }
+}

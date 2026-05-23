@@ -14,9 +14,25 @@ RUN npm install
 COPY web/ ./
 RUN npm run build
 
+# 多阶段构建 - Scraper
+FROM node:20-alpine AS scraper-builder
+WORKDIR /app/scraper
+COPY scraper/package*.json ./
+RUN npm install
+COPY scraper/ ./
+
 # 生产环境
 FROM node:20-alpine
 WORKDIR /app
+
+# 安装系统依赖（Playwright 需要）
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
 
 # 复制 server
 COPY --from=server-builder /app/server/dist ./server/dist
@@ -29,8 +45,16 @@ COPY --from=web-builder /app/web/public ./web/public
 COPY --from=web-builder /app/web/node_modules ./web/node_modules
 COPY --from=web-builder /app/web/package.json ./web/
 
+# 复制 scraper
+COPY --from=scraper-builder /app/scraper/node_modules ./scraper/node_modules
+COPY --from=scraper-builder /app/scraper/src ./scraper/src
+COPY --from=scraper-builder /app/scraper/package.json ./scraper/
+
 # 创建数据目录
 RUN mkdir -p /app/server/data
+
+# 设置 Playwright 浏览器路径
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 
 WORKDIR /app/server
 EXPOSE 3001
