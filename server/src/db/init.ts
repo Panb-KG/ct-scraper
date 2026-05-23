@@ -18,6 +18,9 @@ export function getDb(): Database.Database {
 export function initDb(): void {
   const db = getDb();
 
+  // 确保列存在（兼容已有数据库）
+  try { db.exec('ALTER TABLE bids ADD COLUMN province TEXT DEFAULT ""'); } catch { /* 列已存在 */ }
+
   db.exec(`
     -- 招投标列表数据
     CREATE TABLE IF NOT EXISTS bids (
@@ -30,6 +33,7 @@ export function initDb(): void {
       list_url TEXT,                            -- 列表页 URL
       detail_url TEXT,                          -- 详情页 URL
       summary TEXT DEFAULT '',                  -- 列表摘要
+      province TEXT DEFAULT '',                 -- 省份
       status TEXT DEFAULT 'pending',            -- pending / scraped / error
       scraped_at TEXT,                          -- 抓取时间
       created_at TEXT DEFAULT (datetime('now')),

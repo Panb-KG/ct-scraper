@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { getDb } from '../db/init.js';
-import fetch from 'node-fetch';
+// 使用 Node.js 内置 fetch（Node.js 18+）
 
 // AI 会话查询 - 使用 Bailian/Qwen 模型
 export async function chatRouter(app: FastifyInstance) {
@@ -72,7 +72,8 @@ ${JSON.stringify(searchResults, null, 2)}
       });
 
       const data = await response.json() as Record<string, unknown>;
-      const assistantMessage = (data as Record<string, unknown>).choices?.[0]?.message?.content || '抱歉，无法生成回答';
+      const choices = (data.choices as Array<Record<string, unknown>>) || [];
+      const assistantMessage = (choices[0]?.message as Record<string, unknown>)?.content || '抱歉，无法生成回答';
 
       return {
         message: assistantMessage,
