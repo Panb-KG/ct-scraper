@@ -1,8 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { getDb } from '../db/init.js';
-// 使用 Node.js 内置 fetch（Node.js 18+）
 
-// AI 会话查询 - 使用 Bailian/Qwen 模型
+// AI 会话查询 - 使用 Bailian API
 export async function chatRouter(app: FastifyInstance) {
   app.post('/', async (request, reply) => {
     const body = request.body as Record<string, unknown>;
@@ -48,9 +47,17 @@ ${JSON.stringify(searchResults, null, 2)}
 4. 如果用户需要更详细信息，建议他们使用搜索功能
 `;
 
-    // 调用 Bailian API
+    // 从环境变量获取 API 配置
     const apiKey = process.env.BAILIAN_API_KEY || '';
-    const apiUrl = process.env.BAILIAN_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+    const apiUrl = process.env.BAILIAN_Base_URL || process.env.BAILIAN_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+
+    if (!apiKey) {
+      return reply.status(500).send({
+        error: '未配置 BAILIAN_API_KEY 环境变量',
+        sources: searchResults.length,
+        fallback: '已找到 ' + searchResults.length + ' 条相关记录，请使用搜索功能查看',
+      });
+    }
 
     try {
       const response = await fetch(apiUrl, {
@@ -70,6 +77,16 @@ ${JSON.stringify(searchResults, null, 2)}
           max_tokens: 2000,
         }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Bailian API error:', response.status, errorText);
+        return reply.status(500).send({
+          error: `AI 服务返回错误: ${response.status}`,
+          sources: searchResults.length,
+          fallback: '已找到 ' + searchResults.length + ' 条相关记录，请使用搜索功能查看',
+        });
+      }
 
       const data = await response.json() as Record<string, unknown>;
       const choices = (data.choices as Array<Record<string, unknown>>) || [];
