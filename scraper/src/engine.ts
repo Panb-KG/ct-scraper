@@ -132,12 +132,97 @@ async function scrapeDetail(browser: Browser, detailUrl: string) {
     await sleep(1000);
 
     const content = await page.evaluate(() => {
-      const selectors = ['.detail-content', '.article-content', '#content', '.main-content', '.content', 'article', '.detail'];
-      for (const sel of selectors) {
-        const el = document.querySelector(sel);
-        if (el && el.textContent?.trim().length > 100) return el.textContent?.trim() || '';
+      // 电信采购网是 Vue SPA，没有标准内容选择器
+      // 策略：从 body 全文中提取正文，去掉导航、侧边栏、页脚
+      const fullText = document.body?.innerText?.trim() || '';
+      const title = document.title || '';
+
+      // 定义要过滤掉的噪音行
+      const noisePatterns = [
+        /^首页$/,
+        /^操作指引$/,
+        /^法律法规$/,
+        /^天翼供应链论坛$/,
+        /^在线验章$/,
+        /^关于我们$/,
+        /^返回$/,
+        /^首页\s*\//,
+        /^公告\s*\//,
+        /^公告详情$/,
+        /^打印正文$/,
+        /京公网安备/,
+        /京ICP备/,
+        /版权所有/,
+        /^阳光采购网/,
+        /^中国电信集团公司$/,
+        /^智慧客服/,
+        /^联系我们$/,
+        /^还没有账号/,
+        /^用户登录/,
+        /^采购招标$/,
+        /^其他合作$/,
+        /^更多\s*$/,
+        /^采购结果公示/,
+        /^直接采购公示/,
+        /^澄清公示$/,
+        /^系统公告$/,
+      ];
+
+      const lines = fullText.split('\n');
+      const cleanLines: string[] = [];
+      let started = false;  // 是否已经进入正文区域
+      let consecutiveNoise = 0;
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // 检查是否是噪音行
+        const isNoise = noisePatterns.some(pat => pat.test(trimmed));
+        // 检查是否是日期行（如 2026-05-27）
+        const isDate = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+        // 检查是否是短导航文字（< 10 字符且不是正文）
+        const isNav = trimmed.length < 15 && !/\d/.test(trimmed) && !/[，。、；：！？]/.test(trimmed);
+
+        if (isNoise) {
+          consecutiveNoise++;
+          continue;
+        }
+
+        if (isDate && !started) continue;  // 正文前的日期跳过
+        if (isNav && !started && consecutiveNoise > 0) continue;
+
+        // 如果看到了标题，开始收集
+        if (trimmed === title || (trimmed.length > 10 && trimmed.includes(title.substring(0, 10)))) {
+          started = true;
+          cleanLines.push(trimmed);
+          continue;
+        }
+
+        if (started) {
+          // 正文区域
+          if (trimmed.length > 2 || cleanLines.length > 0) {
+            cleanLines.push(trimmed);
+          }
+        } else if (trimmed.length > 30) {
+          // 很长的文字行，可能是正文开始了
+          started = true;
+          cleanLines.push(trimmed);
+        }
       }
-      return document.body?.innerText?.trim() || '';
+
+      // 如果什么都没提取到，返回过滤后的全文
+      if (cleanLines.length === 0) {
+        return lines
+          .filter(l => {
+            const t = l.trim();
+            return t.length > 5 && !noisePatterns.some(pat => pat.test(t));
+          })
+          .join('\n')
+          .trim();
+      }
+
+      return cleanLines.join('\n').trim();
     });
 
     const fields = await page.evaluate(() => {
@@ -386,10 +471,20 @@ async function runDetails(browser: Browser, taskId: number) {
     if (detail) {
       const d = getDb();
       d.prepare(`UPDATE bids SET status = 'scraped', scraped_at = datetime('now') WHERE id = ?`).run(bid.id);
-      d.prepare(`
-        INSERT OR REPLACE INTO bid_details (bid_id, content, buyer, agency, budget, location, deadline, scraped_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      `).run(bid.id, detail.content, detail.buyer, detail.agency, detail.budget, detail.location, detail.deadline);
+      // 检查是否已有详情记录
+      const existing = d.prepare('SELECT id FROM bid_details WHERE bid_id = ?').get(bid.id) as { id: number } | undefined;
+      if (existing) {
+        d.prepare(`
+          UPDATE bid_details
+          SET content = ?, buyer = ?, agency = ?, budget = ?, location = ?, deadline = ?, scraped_at = datetime('now')
+          WHERE bid_id = ?
+        `).run(detail.content, detail.buyer, detail.agency, detail.budget, detail.location, detail.deadline, bid.id);
+      } else {
+        d.prepare(`
+          INSERT INTO bid_details (bid_id, content, buyer, agency, budget, location, deadline, scraped_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).run(bid.id, detail.content, detail.buyer, detail.agency, detail.budget, detail.location, detail.deadline);
+      }
 
       try {
         d.prepare(`
