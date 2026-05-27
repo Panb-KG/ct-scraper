@@ -33,6 +33,12 @@ export default function RootLayout({
                 <a href="/subscribe" className="text-gray-600 hover:text-gray-900">
                   订阅
                 </a>
+                <a href="/scrape" className="text-gray-600 hover:text-gray-900">
+                  抓取
+                </a>
+                <a href="/database" className="text-gray-600 hover:text-gray-900">
+                  数据库
+                </a>
               </nav>
             </div>
           </div>
