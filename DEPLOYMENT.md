@@ -31,8 +31,11 @@ npm run dev
 
 | 变量名 | 说明 | 示例值 |
 |--------|------|--------|
-| `BAILIAN_API_KEY` | 阿里云 DashScope API Key | `sk-xxx` |
-| `BAILIAN_API_URL` | AI API 端点 | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` |
+| `BAILIAN_API_KEY` | 阿里云百炼 API Key | `sk-xxx` |
+| `BAILIAN_API_URL` | AI API 基础端点 | `https://token-plan.cn-beijing.maas.aliyuncs.com/v1` |
+
+> **说明**：使用百炼 Token Plan 时，`BAILIAN_API_URL` 设置为 `https://token-plan.cn-beijing.maas.aliyuncs.com/v1`，系统会自动拼接 `/chat/completions` 路径。
+
 | `NEXT_PUBLIC_API_URL` | 后端 API 地址 | `https://your-server.zeabur.app` |
 
 ### 4. 配置持久化存储

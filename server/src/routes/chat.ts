@@ -49,7 +49,8 @@ ${JSON.stringify(searchResults, null, 2)}
 
     // 从环境变量获取 API 配置
     const apiKey = process.env.BAILIAN_API_KEY || '';
-    const apiUrl = process.env.BAILIAN_Base_URL || process.env.BAILIAN_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+    const baseUrl = process.env.BAILIAN_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+    const apiUrl = baseUrl.replace(/\/$/, '') + '/chat/completions';
 
     if (!apiKey) {
       return reply.status(500).send({
