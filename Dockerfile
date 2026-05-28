@@ -76,8 +76,9 @@ cd /app/web
 HOST=0.0.0.0 node .next/standalone/server.js &
 WEB_PID=$!
 
-# 等待两个子进程
-wait $SERVER_PID $WEB_PID
+# 等待任一子进程退出，然后清理
+echo "Services started. Waiting..."
+wait
 STARTEOF
 RUN chmod +x /app/start.sh
 
