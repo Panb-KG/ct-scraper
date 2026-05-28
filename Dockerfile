@@ -73,7 +73,7 @@ SERVER_PID=$!
 sleep 3
 
 cd /app/web
-HOST=0.0.0.0 node .next/standalone/server.js &
+HOST=0.0.0.0 PORT=$PORT node .next/standalone/server.js &
 WEB_PID=$!
 
 # 等待任一子进程退出，然后清理
