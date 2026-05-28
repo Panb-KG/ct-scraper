@@ -67,8 +67,8 @@ echo "PORT env: ${PORT:-8080}"
 echo "NODE version: $(node --version)"
 
 cd /app/server
-echo "Starting Fastify Server..."
-node dist/index.js &
+echo "Starting Fastify Server on port 3001..."
+SERVER_PORT=3001 node dist/index.js &
 SERVER_PID=$!
 echo "Server started with PID: $SERVER_PID"
 
