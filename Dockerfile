@@ -73,12 +73,11 @@ SERVER_PID=$!
 sleep 3
 
 cd /app/web
-HOST=0.0.0.0 PORT=${PORT:-3000} node .next/standalone/server.js &
+HOST=0.0.0.0 node .next/standalone/server.js &
 WEB_PID=$!
 
-wait -n
-kill $WEB_PID $SERVER_PID 2>/dev/null
-wait
+# 等待两个子进程
+wait $SERVER_PID $WEB_PID
 STARTEOF
 RUN chmod +x /app/start.sh
 
