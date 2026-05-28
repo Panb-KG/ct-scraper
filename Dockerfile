@@ -60,25 +60,46 @@ EXPOSE 8080
 
 RUN cat > /app/start.sh << 'STARTEOF'
 #!/bin/sh
-set -e
+trap 'echo "Signal received, exiting..."; exit 0' INT TERM
 
-echo "Starting services..."
+echo "=== Starting services ==="
 echo "PORT env: ${PORT:-8080}"
+echo "NODE version: $(node --version)"
 
 cd /app/server
-echo "Starting Server on port 3001..."
-SERVER_PORT=3001 HOST=0.0.0.0 node dist/index.js &
+echo "Starting Fastify Server..."
+node dist/index.js &
 SERVER_PID=$!
+echo "Server started with PID: $SERVER_PID"
 
 sleep 3
 
 cd /app/web
-echo "Starting Next.js on port ${PORT:-8080}..."
-HOST=0.0.0.0 PORT=${PORT:-8080} npm run start &
-WEB_PID=$!
+echo "Checking Next.js installation..."
+ls -la node_modules/.bin/next 2>/dev/null || echo "next not found in node_modules/.bin"
+ls -la .next 2>/dev/null | head -5
 
-echo "Services started. Waiting..."
-wait
+echo "Starting Next.js on port ${PORT:-8080}..."
+PORT=${PORT:-8080} HOST=0.0.0.0 node_modules/.bin/next start 2>&1 &
+WEB_PID=$!
+echo "Next.js started with PID: $WEB_PID"
+
+sleep 5
+
+echo "=== All services started ==="
+echo "Server PID: $SERVER_PID"
+echo "Next.js PID: $WEB_PID"
+
+# 监控进程状态
+while true; do
+    if ! kill -0 $SERVER_PID 2>/dev/null; then
+        echo "Server process died!"
+    fi
+    if ! kill -0 $WEB_PID 2>/dev/null; then
+        echo "Next.js process died!"
+    fi
+    sleep 10
+done
 STARTEOF
 RUN chmod +x /app/start.sh
 
