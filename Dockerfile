@@ -40,10 +40,10 @@ COPY --from=server-builder /app/server/dist ./server/dist
 COPY --from=server-builder /app/server/node_modules ./server/node_modules
 COPY --from=server-builder /app/server/package.json ./server/
 
-# 复制 web - 标准方式
-COPY --from=web-builder /app/web/.next ./web/.next
-COPY --from=web-builder /app/web/public ./web/public
-COPY --from=web-builder /app/web/node_modules ./web/node_modules
+# 复制 web - standalone 模式
+COPY --from=web-builder /app/web/.next/standalone ./web/.next/standalone
+COPY --from=web-builder /app/web/.next/static ./web/.next/standalone/.next/static 2>/dev/null || true
+COPY --from=web-builder /app/web/public ./web/.next/standalone/public
 COPY --from=web-builder /app/web/package.json ./web/
 
 # 复制 scraper
@@ -75,12 +75,8 @@ echo "Server started with PID: $SERVER_PID"
 sleep 3
 
 cd /app/web
-echo "Checking Next.js installation..."
-ls -la node_modules/.bin/next 2>/dev/null || echo "next not found in node_modules/.bin"
-ls -la .next 2>/dev/null | head -5
-
-echo "Starting Next.js on port ${PORT:-8080}..."
-PORT=${PORT:-8080} HOST=0.0.0.0 node_modules/.bin/next start 2>&1 | tee /tmp/nextjs.log &
+echo "Starting Next.js standalone on port ${PORT:-8080}..."
+PORT=${PORT:-8080} HOST=0.0.0.0 node .next/standalone/server.js 2>&1 &
 WEB_PID=$!
 echo "Next.js started with PID: $WEB_PID"
 
@@ -88,17 +84,16 @@ echo "Next.js started with PID: $WEB_PID"
 echo "Waiting for Next.js to be ready..."
 for i in $(seq 1 10); do
     sleep 2
+    if netstat -tuln 2>/dev/null | grep -q "0.0.0.0:${PORT:-8080}" || ss -tuln 2>/dev/null | grep -q "0.0.0.0:${PORT:-8080}"; then
+        echo "Next.js is listening on 0.0.0.0:${PORT:-8080}!"
+        break
+    fi
     if netstat -tuln 2>/dev/null | grep -q ":${PORT:-8080}" || ss -tuln 2>/dev/null | grep -q ":${PORT:-8080}"; then
-        echo "Next.js is listening on port ${PORT:-8080}!"
+        echo "Next.js is listening on port ${PORT:-8080}"
         break
     fi
     echo "Waiting... ($i/10)"
-    tail -3 /tmp/nextjs.log 2>/dev/null || true
 done
-
-# 检查端口
-echo "Checking port ${PORT:-8080}..."
-netstat -tuln 2>/dev/null || ss -tuln 2>/dev/null || echo "netstat/ss not available"
 
 echo "=== All services started ==="
 echo "Server PID: $SERVER_PID"
