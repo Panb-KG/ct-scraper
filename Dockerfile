@@ -73,7 +73,7 @@ SERVER_PID=$!
 sleep 3
 
 cd /app/web
-HOST=0.0.0.0 node .next/standalone/server.js &
+HOST=0.0.0.0 PORT=${PORT:-3000} node .next/standalone/server.js &
 WEB_PID=$!
 
 wait -n
