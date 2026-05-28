@@ -59,15 +59,13 @@ RUN mkdir -p /app/server/data
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 ENV NEXT_PUBLIC_API_URL=http://localhost:3001
 
-# Zeabur 会注入 PORT，我们用专用变量隔离两个服务
-ENV SERVER_PORT=3001
-ENV WEB_PORT=3000
-
 EXPOSE 3000
 
 RUN cat > /app/start.sh << 'STARTEOF'
 #!/bin/sh
-# 明确指定端口，不受外部 PORT 环境变量影响
+# Zeabur 注入 $PORT 环境变量，Next.js 必须监听这个端口
+# Fastify 后端用固定的 3001 端口，通过 Next.js API Proxy 转发
+
 cd /app/server
 SERVER_PORT=3001 HOST=0.0.0.0 node dist/index.js &
 SERVER_PID=$!
@@ -75,7 +73,7 @@ SERVER_PID=$!
 sleep 3
 
 cd /app/web
-HOST=0.0.0.0 PORT=3000 node .next/standalone/server.js &
+HOST=0.0.0.0 node .next/standalone/server.js &
 WEB_PID=$!
 
 wait -n
