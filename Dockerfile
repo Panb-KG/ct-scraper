@@ -59,7 +59,7 @@ RUN mkdir -p /app/server/data
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 ENV NEXT_PUBLIC_API_URL=http://localhost:3001
 
-EXPOSE 8080
+EXPOSE 3000
 
 RUN cat > /app/start.sh << 'EOF'
 #!/bin/sh
@@ -70,7 +70,7 @@ SERVER_PID=$!
 sleep 2
 
 cd /app/web
-HOST=0.0.0.0 PORT=8080 node .next/standalone/server.js &
+HOST=0.0.0.0 PORT=3000 node .next/standalone/server.js &
 WEB_PID=$!
 
 wait -n
