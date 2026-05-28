@@ -42,7 +42,6 @@ COPY --from=server-builder /app/server/package.json ./server/
 
 # 复制 web - standalone 模式
 COPY --from=web-builder /app/web/.next/standalone ./web/.next/standalone
-COPY --from=web-builder /app/web/.next/static ./web/.next/standalone/.next/static 2>/dev/null || true
 COPY --from=web-builder /app/web/public ./web/.next/standalone/public
 COPY --from=web-builder /app/web/package.json ./web/
 
