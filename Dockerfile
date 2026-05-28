@@ -59,7 +59,7 @@ RUN mkdir -p /app/server/data
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 ENV NEXT_PUBLIC_API_URL=http://localhost:3001
 
-EXPOSE 3000
+EXPOSE 8080
 
 RUN cat > /app/start.sh << 'STARTEOF'
 #!/bin/sh
