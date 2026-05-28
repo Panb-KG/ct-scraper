@@ -80,11 +80,25 @@ ls -la node_modules/.bin/next 2>/dev/null || echo "next not found in node_module
 ls -la .next 2>/dev/null | head -5
 
 echo "Starting Next.js on port ${PORT:-8080}..."
-PORT=${PORT:-8080} HOST=0.0.0.0 node_modules/.bin/next start 2>&1 &
+PORT=${PORT:-8080} HOST=0.0.0.0 node_modules/.bin/next start 2>&1 | tee /tmp/nextjs.log &
 WEB_PID=$!
 echo "Next.js started with PID: $WEB_PID"
 
-sleep 5
+# 等待 Next.js 启动
+echo "Waiting for Next.js to be ready..."
+for i in $(seq 1 10); do
+    sleep 2
+    if netstat -tuln 2>/dev/null | grep -q ":${PORT:-8080}" || ss -tuln 2>/dev/null | grep -q ":${PORT:-8080}"; then
+        echo "Next.js is listening on port ${PORT:-8080}!"
+        break
+    fi
+    echo "Waiting... ($i/10)"
+    tail -3 /tmp/nextjs.log 2>/dev/null || true
+done
+
+# 检查端口
+echo "Checking port ${PORT:-8080}..."
+netstat -tuln 2>/dev/null || ss -tuln 2>/dev/null || echo "netstat/ss not available"
 
 echo "=== All services started ==="
 echo "Server PID: $SERVER_PID"
