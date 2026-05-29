@@ -72,7 +72,8 @@ sleep 3
 
 cd /app/web/.next/standalone
 echo "Starting Next.js standalone on port ${PORT:-8080}..."
-PORT=${PORT:-8080} HOST=0.0.0.0 NODE_OPTIONS="--dns-result-order=ipv4first" node server.js 2>&1 &
+echo "Setting HOSTNAME=0.0.0.0 (not HOST!)"
+HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js 2>&1 &
 WEB_PID=$!
 echo "Next.js started with PID: $WEB_PID"
 
