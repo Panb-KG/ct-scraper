@@ -26,26 +26,23 @@ COPY scraper/ ./
 FROM node:20-alpine
 WORKDIR /app
 
-# 安装系统依赖（Playwright 需要）
 RUN apk add --no-cache \
     chromium \
     nss \
     freetype \
     harfbuzz \
     ca-certificates \
-    ttf-freefont
+    ttf-freefont \
+    curl
 
-# 复制 server
 COPY --from=server-builder /app/server/dist ./server/dist
 COPY --from=server-builder /app/server/node_modules ./server/node_modules
 COPY --from=server-builder /app/server/package.json ./server/
 
-# 复制 web - standalone 模式
 COPY --from=web-builder /app/web/.next/standalone ./web/.next/standalone
 COPY --from=web-builder /app/web/public ./web/.next/standalone/public
 COPY --from=web-builder /app/web/package.json ./web/
 
-# 复制 scraper
 COPY --from=scraper-builder /app/scraper/node_modules ./scraper/node_modules
 COPY --from=scraper-builder /app/scraper/src ./scraper/src
 COPY --from=scraper-builder /app/scraper/package.json ./scraper/
@@ -73,38 +70,48 @@ echo "Server started with PID: $SERVER_PID"
 
 sleep 3
 
-cd /app/web
+cd /app/web/.next/standalone
 echo "Starting Next.js standalone on port ${PORT:-8080}..."
-PORT=${PORT:-8080} HOST=0.0.0.0 node .next/standalone/server.js 2>&1 &
+PORT=${PORT:-8080} HOST=0.0.0.0 NODE_OPTIONS="--dns-result-order=ipv4first" node server.js 2>&1 &
 WEB_PID=$!
 echo "Next.js started with PID: $WEB_PID"
 
-# 等待 Next.js 启动
 echo "Waiting for Next.js to be ready..."
-for i in $(seq 1 10); do
+for i in $(seq 1 15); do
     sleep 2
-    if netstat -tuln 2>/dev/null | grep -q "0.0.0.0:${PORT:-8080}" || ss -tuln 2>/dev/null | grep -q "0.0.0.0:${PORT:-8080}"; then
-        echo "Next.js is listening on 0.0.0.0:${PORT:-8080}!"
+    
+    echo "--- Check $i ---"
+    if command -v ss > /dev/null; then
+        ss -tuln | grep -E ":3001|:${PORT:-8080}"
+    elif command -v netstat > /dev/null; then
+        netstat -tuln | grep -E ":3001|:${PORT:-8080}"
+    fi
+    
+    if curl -s http://localhost:${PORT:-8080}/ > /dev/null 2>&1; then
+        echo "✅ Next.js is responding on http://localhost:${PORT:-8080}"
         break
     fi
-    if netstat -tuln 2>/dev/null | grep -q ":${PORT:-8080}" || ss -tuln 2>/dev/null | grep -q ":${PORT:-8080}"; then
-        echo "Next.js is listening on port ${PORT:-8080}"
+    
+    if curl -s http://127.0.0.1:${PORT:-8080}/ > /dev/null 2>&1; then
+        echo "✅ Next.js is responding on http://127.0.0.1:${PORT:-8080}"
         break
     fi
-    echo "Waiting... ($i/10)"
+    
+    echo "Waiting... ($i/15)"
 done
 
 echo "=== All services started ==="
 echo "Server PID: $SERVER_PID"
 echo "Next.js PID: $WEB_PID"
+echo "Final port check:"
+ss -tuln 2>/dev/null || netstat -tuln 2>/dev/null
 
-# 监控进程状态
 while true; do
     if ! kill -0 $SERVER_PID 2>/dev/null; then
-        echo "Server process died!"
+        echo "❌ Server process died!"
     fi
     if ! kill -0 $WEB_PID 2>/dev/null; then
-        echo "Next.js process died!"
+        echo "❌ Next.js process died!"
     fi
     sleep 10
 done
