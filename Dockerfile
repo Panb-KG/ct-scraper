@@ -78,7 +78,7 @@ WEB_PID=$!
 echo "Next.js started with PID: $WEB_PID"
 
 echo "Waiting for Next.js to be ready..."
-for i in $(seq 1 15); do
+for i in $(seq 1 20); do
     sleep 2
     
     echo "--- Check $i ---"
@@ -88,17 +88,17 @@ for i in $(seq 1 15); do
         netstat -tuln | grep -E ":3001|:${PORT:-8080}"
     fi
     
-    if curl -s http://localhost:${PORT:-8080}/ > /dev/null 2>&1; then
-        echo "✅ Next.js is responding on http://localhost:${PORT:-8080}"
+    if curl -s http://localhost:${PORT:-8080}/api/health > /dev/null 2>&1; then
+        echo "✅ Health check passed: http://localhost:${PORT:-8080}/api/health"
         break
     fi
     
-    if curl -s http://127.0.0.1:${PORT:-8080}/ > /dev/null 2>&1; then
-        echo "✅ Next.js is responding on http://127.0.0.1:${PORT:-8080}"
+    if curl -s http://127.0.0.1:${PORT:-8080}/api/health > /dev/null 2>&1; then
+        echo "✅ Health check passed: http://127.0.0.1:${PORT:-8080}/api/health"
         break
     fi
     
-    echo "Waiting... ($i/15)"
+    echo "Waiting... ($i/20)"
 done
 
 echo "=== All services started ==="
