@@ -32,9 +32,9 @@ RUN mkdir -p /app/web/data
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 ENV NODE_ENV=production
 ENV PORT=8080
-ENV HOSTNAME=0.0.0.0
+ENV HOST=0.0.0.0
 
 EXPOSE 8080
 
-# 直接使用 node 运行 next，绕过 npm
-CMD ["node", "node_modules/next/dist/bin/next", "start"]
+# 直接使用 node 运行 next，设置正确的主机名
+CMD ["node", "node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0"]
