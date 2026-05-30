@@ -9,7 +9,7 @@ RUN npm run build
 
 # 生产环境
 FROM node:20-alpine
-WORKDIR /app
+WORKDIR /app/web
 
 # 安装系统依赖
 RUN apk add --no-cache \
@@ -18,27 +18,20 @@ RUN apk add --no-cache \
   freetype \
   harfbuzz \
   ca-certificates \
-  ttf-freefont \
-  curl \
-  iproute2
+  ttf-freefont
 
-# 复制 Next.js standalone 构建
-COPY --from=web-builder /app/web/.next/standalone ./
-COPY --from=web-builder /app/web/.next/static ./.next/static
-COPY --from=web-builder /app/web/public ./public
+# 复制文件
+COPY --from=web-builder /app/web/node_modules ./node_modules
 COPY --from=web-builder /app/web/package.json ./
-
-# 复制启动脚本
-COPY start.sh ./start.sh
-RUN chmod +x start.sh
+COPY --from=web-builder /app/web/.next ./.next
+COPY --from=web-builder /app/web/public ./public
 
 # 确保 data 目录存在
-RUN mkdir -p /app/data
+RUN mkdir -p /app/web/data
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 ENV NODE_ENV=production
 
 EXPOSE 8080
 
-# 使用启动脚本，设置环境变量
-CMD ["sh", "-c", "export HOSTNAME=0.0.0.0 && export PORT=${PORT:-8080} && ./start.sh"]
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 PORT=8080 npm start"]
