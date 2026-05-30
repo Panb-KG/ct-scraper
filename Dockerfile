@@ -31,7 +31,9 @@ RUN mkdir -p /app/web/data
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 ENV NODE_ENV=production
+ENV PORT=8080
+ENV HOSTNAME=0.0.0.0
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "HOSTNAME=0.0.0.0 PORT=8080 npm start"]
+CMD ["npm", "start"]
