@@ -36,8 +36,9 @@ RUN chmod +x start.sh
 RUN mkdir -p /app/data
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
+ENV NODE_ENV=production
 
 EXPOSE 8080
 
-# 使用启动脚本
-CMD ["./start.sh"]
+# 使用启动脚本，设置环境变量
+CMD ["sh", "-c", "export HOSTNAME=0.0.0.0 && export PORT=${PORT:-8080} && ./start.sh"]
