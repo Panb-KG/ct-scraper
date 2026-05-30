@@ -21,7 +21,7 @@ interface Stats {
   by_category: { category: string; count: number }[];
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = '';
 
 export default function HomePage() {
   const [stats, setStats] = useState<Stats | null>(null);
