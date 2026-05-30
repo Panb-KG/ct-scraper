@@ -32,7 +32,7 @@ RUN mkdir -p /app/data
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/lib/chromium
 # 前端调用 API 使用相对路径，不需要 NEXT_PUBLIC_API_URL
 
-EXPOSE 3000
+EXPOSE 8080
 
-# 启动 Next.js 服务
-CMD ["node", "server.js"]
+# 启动 Next.js 服务，确保监听 0.0.0.0:8080
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 PORT=8080 node server.js"]
