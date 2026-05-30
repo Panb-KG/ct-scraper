@@ -142,7 +142,4 @@ export function initDb(): void {
 }
 
 // 初始化数据库
-if (typeof globalThis.ctScraperDbInitialized === 'undefined') {
-  globalThis.ctScraperDbInitialized = true;
-  initDb();
-}
+initDb();
