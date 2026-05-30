@@ -36,4 +36,5 @@ ENV HOSTNAME=0.0.0.0
 
 EXPOSE 8080
 
-CMD ["npm", "start"]
+# 直接使用 node 运行 next，绕过 npm
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
