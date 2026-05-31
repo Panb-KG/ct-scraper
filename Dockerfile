@@ -18,13 +18,20 @@ RUN apk add --no-cache \
   freetype \
   harfbuzz \
   ca-certificates \
-  ttf-freefont
+  ttf-freefont \
+  curl \
+  iproute2 \
+  bind-tools
 
 # 复制文件
 COPY --from=web-builder /app/web/node_modules ./node_modules
 COPY --from=web-builder /app/web/package.json ./
 COPY --from=web-builder /app/web/.next ./.next
 COPY --from=web-builder /app/web/public ./public
+
+# 复制启动脚本
+COPY start.sh ./start.sh
+RUN chmod +x start.sh
 
 # 确保 data 目录存在
 RUN mkdir -p /app/web/data
@@ -36,5 +43,4 @@ ENV HOST=0.0.0.0
 
 EXPOSE 8080
 
-# 直接使用 node 运行 next，设置正确的主机名
-CMD ["node", "node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0"]
+CMD ["./start.sh"]
