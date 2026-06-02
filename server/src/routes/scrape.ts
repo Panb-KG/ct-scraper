@@ -230,11 +230,25 @@ export async function scrapeRouter(app: FastifyInstance) {
     const logId = logResult.lastInsertRowid as number;
     db.close();
 
+    const isProd = process.env.NODE_ENV === 'production';
     const scraperDir = path.resolve(process.cwd(), '../scraper');
-    const args = ['tsx', 'src/index.ts', '--pages', pages.toString(), '--keywords', keywords];
-    if (category) args.push('--category', category);
 
-    const proc = spawn('npx', args, {
+    let command: string;
+    let args: string[];
+
+    if (isProd) {
+      // 生产环境：使用编译后的 JS
+      command = 'node';
+      args = ['dist/scraper.js', '--pages', pages.toString(), '--keywords', keywords];
+      if (category) args.push('--category', category);
+    } else {
+      // 开发环境：使用 tsx 运行 TypeScript
+      command = 'npx';
+      args = ['tsx', 'src/index.ts', '--pages', pages.toString(), '--keywords', keywords];
+      if (category) args.push('--category', category);
+    }
+
+    const proc = spawn(command, args, {
       cwd: scraperDir,
       stdio: 'pipe',
       env: { ...process.env },
@@ -273,10 +287,23 @@ function launchTask(taskId: number) {
   currentTaskId = taskId;
   isRunning = true;
 
+  const isProd = process.env.NODE_ENV === 'production';
   const scraperDir = path.resolve(process.cwd(), '../scraper');
-  const args = ['tsx', 'src/index.ts', '--task', taskId.toString()];
 
-  const proc = spawn('npx', args, {
+  let command: string;
+  let args: string[];
+
+  if (isProd) {
+    // 生产环境：使用编译后的 JS
+    command = 'node';
+    args = ['dist/index.js', '--task', taskId.toString()];
+  } else {
+    // 开发环境：使用 tsx 运行 TypeScript
+    command = 'npx';
+    args = ['tsx', 'src/index.ts', '--task', taskId.toString()];
+  }
+
+  const proc = spawn(command, args, {
     cwd: scraperDir,
     stdio: 'pipe',
     env: { ...process.env },
