@@ -21,16 +21,41 @@ interface Stats {
   by_category: { category: string; count: number }[];
 }
 
+interface ScrapeStatus {
+  current_task: {
+    id: number;
+    task_type: string;
+    status: string;
+    progress_pct: number;
+    completed_items: number;
+    total_items: number;
+    success_count: number;
+  } | null;
+  data: {
+    total_bids: number;
+    scraped: number;
+    pending: number;
+  };
+}
+
+const TASK_LABELS: Record<string, string> = {
+  full_site: '全量抓取',
+  incremental: '增量抓取',
+  detail: '详情页抓取',
+};
+
 const API_URL = '';
 
 export default function HomePage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [scrapeStatus, setScrapeStatus] = useState<ScrapeStatus | null>(null);
   const [recentBids, setRecentBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadStats();
+    loadScrapeStatus();
     loadRecentBids();
   }, []);
 
@@ -40,6 +65,15 @@ export default function HomePage() {
       setStats(res.data);
     } catch (error) {
       console.error('Failed to load stats:', error);
+    }
+  }
+
+  async function loadScrapeStatus() {
+    try {
+      const res = await fetch('/api/scrape/progress');
+      if (res.ok) setScrapeStatus(await res.json());
+    } catch (error) {
+      console.error('Failed to load scrape status:', error);
     }
   }
 
@@ -91,6 +125,48 @@ export default function HomePage() {
           </div>
         </form>
       </div>
+
+      {/* 爬虫状态 */}
+      {scrapeStatus && (
+        <div className="bg-white p-5 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">
+                {scrapeStatus.current_task?.status === 'running' ? '🔄' : '🕷️'}
+              </span>
+              <div>
+                <div className="font-medium text-gray-900">
+                  {scrapeStatus.current_task
+                    ? `${TASK_LABELS[scrapeStatus.current_task.task_type] || scrapeStatus.current_task.task_type} · ${
+                        scrapeStatus.current_task.status === 'running' ? '运行中' :
+                        scrapeStatus.current_task.status === 'completed' ? '已完成' :
+                        '空闲'
+                      }`
+                    : '爬虫空闲'}
+                </div>
+                {scrapeStatus.current_task?.status === 'running' && (
+                  <div className="text-sm text-gray-500 mt-0.5">
+                    {scrapeStatus.current_task.completed_items}/{scrapeStatus.current_task.total_items} 页 · {scrapeStatus.current_task.success_count} 条新记录
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {scrapeStatus.current_task?.status === 'running' && (
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-blue-600">{scrapeStatus.current_task.progress_pct.toFixed(1)}%</div>
+                  <div className="w-32 bg-gray-200 rounded-full h-2 mt-1 overflow-hidden">
+                    <div className="bg-blue-500 h-full rounded-full" style={{ width: `${scrapeStatus.current_task.progress_pct}%` }} />
+                  </div>
+                </div>
+              )}
+              <a href="/scrape" className="text-sm text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap">
+                控制台 →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 统计卡片 */}
       {stats && (
