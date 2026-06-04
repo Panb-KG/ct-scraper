@@ -100,6 +100,74 @@ export async function scrapeRouter(app: FastifyInstance) {
     };
   });
 
+  // 汇总进度接口（前端/监控用）
+  app.get('/progress', async () => {
+    const db = getDb();
+
+    // 当前运行中的任务
+    const runningTask = db.prepare(`
+      SELECT * FROM scrape_tasks WHERE status = 'running' ORDER BY started_at DESC LIMIT 1
+    `).get() as Record<string, unknown> | undefined;
+
+    // 最近完成的任务
+    const lastTask = db.prepare(`
+      SELECT id, task_type, status, progress_pct, success_count, total_items,
+             started_at, finished_at, error_msg
+      FROM scrape_tasks
+      WHERE status IN ('completed', 'failed')
+      ORDER BY finished_at DESC LIMIT 1
+    `).get() as Record<string, unknown> | undefined;
+
+    // 当前任务的分类维度进度
+    let categoryProgress: unknown[] = [];
+    if (runningTask) {
+      const taskId = (runningTask as Record<string, unknown>).id as number;
+      categoryProgress = db.prepare(`
+        SELECT category,
+               COUNT(*) as total_pages,
+               SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_pages,
+               SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_pages,
+               SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_pages,
+               SUM(CASE WHEN status = 'fetching' THEN 1 ELSE 0 END) as fetching_pages,
+               COALESCE(SUM(records_new), 0) as new_records
+        FROM scrape_items
+        WHERE task_id = ?
+        GROUP BY category
+        ORDER BY category
+      `).all(taskId);
+    }
+
+    // 数据统计
+    const totalBids = db.prepare('SELECT COUNT(*) as cnt FROM bids').get() as { cnt: number };
+    const scraped = db.prepare("SELECT COUNT(*) as cnt FROM bids WHERE status = 'scraped'").get() as { cnt: number };
+    const pending = db.prepare("SELECT COUNT(*) as cnt FROM bids WHERE status = 'pending'").get() as { cnt: number };
+
+    db.close();
+
+    return {
+      // 当前运行任务
+      current_task: runningTask ? {
+        id: (runningTask as Record<string, unknown>).id,
+        task_type: (runningTask as Record<string, unknown>).task_type,
+        status: (runningTask as Record<string, unknown>).status,
+        progress_pct: (runningTask as Record<string, unknown>).progress_pct,
+        completed_items: (runningTask as Record<string, unknown>).completed_items,
+        total_items: (runningTask as Record<string, unknown>).total_items,
+        success_count: (runningTask as Record<string, unknown>).success_count,
+        started_at: (runningTask as Record<string, unknown>).started_at,
+        by_category: categoryProgress,
+      } : null,
+      // 最近完成的任务
+      last_task: lastTask,
+      // 数据库统计
+      data: {
+        total_bids: totalBids.cnt,
+        scraped: scraped.cnt,
+        pending: pending.cnt,
+      },
+    };
+  });
+
   // ============ 数据统计 ============
 
   // 数据库统计

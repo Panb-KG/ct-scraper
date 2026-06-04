@@ -46,12 +46,11 @@ fi
 # 3. 部署后自动全量爬取（后台运行，不阻塞健康检查）
 if [ "$AUTO_SCRAPE" = "true" ]; then
   echo ""
-  echo "=== Auto-scrape enabled, starting full scrape ==="
-  cd /app/scraper
-  node dist/scraper.js --pages 5 &
-  SCRAPER_PID=$!
+  echo "=== Auto-scrape enabled, creating full-site task ==="
+  cd /app/server
+  node dist/auto-scrape.js &
   cd /app
-  echo "Scraper started in background (PID $SCRAPER_PID)"
+  echo "Auto-scrape bootstrapper started (runs in background)"
   echo "Monitor: curl http://localhost:$SERVER_PORT/api/scrape/stats"
 else
   echo ""
