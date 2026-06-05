@@ -53,7 +53,7 @@ COPY --from=scraper-builder /app/scraper ./scraper
 
 # 在最终阶段安装 Playwright 浏览器（环境变量确保安装到正确路径）
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN cd /app/scraper && npx playwright install chromium
+RUN cd /app/scraper && npx playwright install
 
 # 复制 web
 COPY --from=web-builder /app/web/node_modules ./web/node_modules
