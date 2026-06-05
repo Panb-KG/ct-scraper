@@ -2,6 +2,7 @@ import { chromium, Browser } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +38,7 @@ function getDb() {
   const dbPath = path.resolve(__dirname, '../../server/data/ct-scraper.db');
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const db = new (require('better-sqlite3'))(dbPath);
+  const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   return db;
 }
