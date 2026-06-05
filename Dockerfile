@@ -33,10 +33,13 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Playwright 浏览器系统依赖由 --with-deps 自动安装
-# 安装基本工具
+# 安装 Playwright 需要的完整系统依赖（Debian 版）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl iproute2 dnsutils \
+    libnss3 libfreetype6 libharfbuzz0b libfontconfig1 \
+    libdrm2 libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \
+    libgbm1 libpango-1.0-0 libcairo2 libasound2 libxshmfence1 libx11-xcb1 \
+    libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3 \
+    ca-certificates fonts-freefont-ttf curl iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制 server
@@ -46,9 +49,9 @@ RUN cd server && npm install --omit=dev
 # 复制 scraper（含 node_modules）
 COPY --from=scraper-builder /app/scraper ./scraper
 
-# 安装 Playwright 浏览器及其系统依赖
+# 安装 Playwright 浏览器
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN cd /app/scraper && npx playwright install --with-deps chromium
+RUN cd /app/scraper && npx playwright install chromium
 
 # 复制 web
 COPY --from=web-builder /app/web/node_modules ./web/node_modules
