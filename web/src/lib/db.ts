@@ -141,5 +141,8 @@ export function initDb(): void {
   console.log('Database initialized:', DB_PATH);
 }
 
-// 初始化数据库
-initDb();
+// 构建阶段跳过数据库初始化（避免 SQLITE_BUSY）
+// 运行时由 server 端 initDb() 负责初始化
+if (process.env.NEXT_PHASE !== 'build') {
+  initDb();
+}
