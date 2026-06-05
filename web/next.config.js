@@ -7,8 +7,6 @@ const nextConfig = {
   trustHostHeader: true,
   // 确保构建 ID 稳定
   generateBuildId: () => 'stable-build-id',
-  // 使用 standalone 输出减少运行时依赖
-  output: 'standalone',
 };
 
 module.exports = nextConfig;

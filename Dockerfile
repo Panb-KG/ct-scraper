@@ -52,9 +52,10 @@ COPY --from=scraper-builder /app/scraper ./scraper
 # ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 # RUN cd /app/scraper && npx playwright install chromium
 
-# 复制 web（standalone 模式）
-COPY --from=web-builder /app/web/.next/standalone ./web/
-COPY --from=web-builder /app/web/.next/static ./web/.next/static
+# 复制 web
+COPY --from=web-builder /app/web/node_modules ./web/node_modules
+COPY --from=web-builder /app/web/package.json ./web/package.json
+COPY --from=web-builder /app/web/.next ./web/.next
 COPY --from=web-builder /app/web/public ./web/public
 
 # 复制启动脚本
