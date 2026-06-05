@@ -35,7 +35,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# 安装 Playwright Chromium 及其系统依赖
+# 安装系统依赖
 RUN apk add --no-cache \
     nss \
     freetype \
@@ -46,16 +46,16 @@ RUN apk add --no-cache \
     iproute2 \
     bind-tools
 
-# 安装 Playwright 的 Chromium 浏览器
-RUN npx --yes playwright@1.49.0 install chromium
-
-# 复制 server
+# 复制 server 并安装依赖
 COPY --from=server-builder /app/server ./server
 RUN cd server && npm install --omit=dev
 
-# 复制 scraper
+# 复制 scraper 并安装依赖
 COPY --from=scraper-builder /app/scraper ./scraper
 RUN cd scraper && npm install --omit=dev
+
+# 安装 Playwright 浏览器（在复制 scraper 之后，确保版本匹配）
+RUN cd /app/scraper && npx playwright install chromium
 
 # 复制 web
 COPY --from=web-builder /app/web/node_modules ./web/node_modules
