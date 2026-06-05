@@ -43,20 +43,20 @@ else
   exit 1
 fi
 
-# 3. 部署后自动全量爬取（后台运行，不阻塞健康检查）
-if [ "$AUTO_SCRAPE" = "true" ]; then
+# 3. 部署后自动全量爬取（已禁用，等待 Playwright 依赖修复）
+# if [ "$AUTO_SCRAPE" = "true" ]; then
+#   echo ""
+#   echo "=== Auto-scrape enabled, creating full-site task ==="
+#   cd /app/server
+#   node dist/auto-scrape.js &
+#   cd /app
+#   echo "Auto-scrape bootstrapper started (runs in background)"
+#   echo "Monitor: curl http://localhost:$SERVER_PORT/api/scrape/stats"
+# else
   echo ""
-  echo "=== Auto-scrape enabled, creating full-site task ==="
-  cd /app/server
-  node dist/auto-scrape.js &
-  cd /app
-  echo "Auto-scrape bootstrapper started (runs in background)"
-  echo "Monitor: curl http://localhost:$SERVER_PORT/api/scrape/stats"
-else
-  echo ""
-  echo "Auto-scrape disabled. Set AUTO_SCRAPE=true to enable."
-  echo "Manual trigger: cd /app/scraper && node dist/scraper.js --pages 5"
-fi
+  echo "Auto-scrape temporarily disabled (Playwright deps issue)"
+#   echo "Manual trigger: cd /app/scraper && node dist/scraper.js --pages 5"
+# fi
 
 echo ""
 echo "=== All services started ==="

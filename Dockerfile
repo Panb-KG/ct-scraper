@@ -48,9 +48,9 @@ RUN cd server && npm install --omit=dev
 # 复制 scraper（含 node_modules）
 COPY --from=scraper-builder /app/scraper ./scraper
 
-# 只安装 Chromium 浏览器（不带 --with-deps）
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN cd /app/scraper && npx playwright install chromium
+# 暂不安装 Playwright 浏览器（scraper 已禁用）
+# ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# RUN cd /app/scraper && npx playwright install chromium
 
 # 复制 web（standalone 模式）
 COPY --from=web-builder /app/web/.next/standalone ./web/
