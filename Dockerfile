@@ -1,9 +1,9 @@
 # ============================================================
-# ct-scraper 全量 Docker 构建
+# ct-scraper 全量 Docker 构建（统一使用 Debian slim）
 # ============================================================
 
 # ---- 阶段1: 构建 Next.js 前端 ----
-FROM node:20-alpine AS web-builder
+FROM node:20-slim AS web-builder
 WORKDIR /app/web
 COPY web/package*.json ./
 RUN npm install
@@ -12,7 +12,7 @@ RUN mkdir -p public
 RUN npm run build
 
 # ---- 阶段2: 构建 server ----
-FROM node:20-alpine AS server-builder
+FROM node:20-slim AS server-builder
 WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm install
@@ -20,19 +20,19 @@ COPY server/ ./
 RUN npm run build
 
 # ---- 阶段3: 构建 scraper ----
-FROM node:20-alpine AS scraper-builder
+FROM node:20-slim AS scraper-builder
 WORKDIR /app/scraper
 COPY scraper/package*.json ./
 RUN npm install
 COPY scraper/ ./
 RUN npm run build
 
-# ---- 最终阶段 (Debian slim) ----
+# ---- 最终阶段 ----
 FROM node:20-slim
 
 WORKDIR /app
 
-# 精简安装 Playwright 需要的依赖（不含字体，避免 286MB）
+# 安装系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 libfreetype6 libharfbuzz0b libfontconfig1 \
     libdrm2 libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \
@@ -45,12 +45,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=server-builder /app/server ./server
 RUN cd server && npm install --omit=dev
 
-# 复制 scraper（含 node_modules）
+# 复制 scraper
 COPY --from=scraper-builder /app/scraper ./scraper
-
-# 暂不安装 Playwright 浏览器（scraper 已禁用）
-# ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-# RUN cd /app/scraper && npx playwright install chromium
 
 # 复制 web
 COPY --from=web-builder /app/web/node_modules ./web/node_modules
