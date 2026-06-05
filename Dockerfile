@@ -20,15 +20,16 @@ RUN npm install
 COPY server/ ./
 RUN npm run build
 
-# ---- 阶段3: 构建 scraper ----
+# ---- 阶段3: 构建 scraper + 安装 Playwright 浏览器 ----
 FROM node:20-alpine AS scraper-builder
 WORKDIR /app/scraper
 COPY scraper/package*.json ./
-# 跳过 Playwright 浏览器下载，我们在最终阶段单独安装
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN npm install
 COPY scraper/ ./
 RUN npm run build
+# 安装 Playwright 浏览器（使用 scraper 自身依赖的精确版本）
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install chromium --with-deps
 
 # ---- 最终阶段 ----
 FROM node:20-alpine
@@ -46,16 +47,15 @@ RUN apk add --no-cache \
     iproute2 \
     bind-tools
 
-# 复制 server 并安装依赖
+# 复制 server
 COPY --from=server-builder /app/server ./server
 RUN cd server && npm install --omit=dev
 
-# 复制 scraper 并安装依赖
+# 复制 scraper（含浏览器）
 COPY --from=scraper-builder /app/scraper ./scraper
 RUN cd scraper && npm install --omit=dev
-
-# 安装 Playwright 浏览器（在复制 scraper 之后，确保版本匹配）
-RUN cd /app/scraper && npx playwright install chromium
+# 复制 Playwright 浏览器
+COPY --from=scraper-builder /ms-playwright /ms-playwright
 
 # 复制 web
 COPY --from=web-builder /app/web/node_modules ./web/node_modules
