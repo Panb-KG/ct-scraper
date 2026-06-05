@@ -2,7 +2,7 @@
   "$schema": "https://zeabur.com/schema/zeabur.json",
   "deploy": {
     "port": 8080,
-    "healthCheckPath": "/",
+    "healthCheckPath": "/api/health",
     "startCommand": "./start.sh"
   }
 }
