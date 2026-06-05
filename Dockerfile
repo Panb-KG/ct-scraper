@@ -27,7 +27,7 @@ COPY scraper/package*.json ./
 RUN npm install
 COPY scraper/ ./
 RUN npm run build
-# 安装 Playwright 浏览器（使用 scraper 自身依赖的精确版本）
+# 在 scraper-builder 中安装浏览器（此处已有正确的 PLAYWRIGHT_BROWSERS_PATH）
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN npx playwright install chromium
 
@@ -36,7 +36,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# 安装系统依赖
+# 安装系统依赖（Playwright 浏览器运行需要）
 RUN apk add --no-cache \
     nss \
     freetype \
@@ -51,10 +51,8 @@ RUN apk add --no-cache \
 COPY --from=server-builder /app/server ./server
 RUN cd server && npm install --omit=dev
 
-# 复制 scraper（含浏览器）
+# 复制 scraper + 浏览器（直接从 scraper-builder 复制完整目录）
 COPY --from=scraper-builder /app/scraper ./scraper
-RUN cd scraper && npm install --omit=dev
-# 复制 Playwright 浏览器
 COPY --from=scraper-builder /ms-playwright /ms-playwright
 
 # 复制 web
