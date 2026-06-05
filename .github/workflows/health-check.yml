@@ -12,25 +12,52 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: 🌐 Configure DNS for Chinese IDN domain
+        run: |
+          # GitHub runners may not resolve .中国 IDN domains by default
+          # Use Google Public DNS (8.8.8.8) which supports IDN
+          sudo mkdir -p /etc/systemd/resolved.conf.d
+          echo "[Resolve]" | sudo tee /etc/systemd/resolved.conf.d/dns.conf
+          echo "DNS=8.8.8.8 8.8.4.4" | sudo tee -a /etc/systemd/resolved.conf.d/dns.conf
+          sudo systemctl restart systemd-resolved 2>/dev/null || true
+          echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+
       - name: ⏳ Wait for Zeabur deployment & test site
         env:
+          # Punycode for www.标智云.中国
           TARGET_URL: "https://www.xn--eqr323h8rk.xn--fiq"
           MAX_WAIT: 600
           INTERVAL: 15
         run: |
-          echo "🎯 目标: $TARGET_URL"
+          echo "🎯 目标: $TARGET_URL (www.标智云.中国)"
           echo "⏱  最长等待: ${MAX_WAIT}s, 检测间隔: ${INTERVAL}s"
           echo "─────────────────────────────────"
 
+          # First verify DNS resolution
+          echo "🔍 Testing DNS resolution..."
+          nslookup "www.xn--eqr323h8rk.xn--fiq" 8.8.8.8 2>/dev/null || \
+            echo "⚠️  DNS resolution via 8.8.8.8 failed, will try anyway"
+
           elapsed=0
           attempt=0
+          dns_fails=0
 
           while [ $elapsed -lt $MAX_WAIT ]; do
             attempt=$((attempt + 1))
 
             http_code=$(curl -s -o /tmp/response.html -w "%{http_code}" \
-              --max-time 10 \
+              --max-time 15 \
+              --connect-timeout 10 \
+              --resolve "www.xn--eqr323h8rk.xn--fiq:443:$(dig +short www.xn--eqr323h8rk.xn--fiq @8.8.8.8 2>/dev/null | head -1 || echo '')" \
               "$TARGET_URL" 2>/dev/null || echo "000")
+
+            # Fallback without --resolve if DNS lookup failed
+            if [ "$http_code" = "000" ]; then
+              http_code=$(curl -s -o /tmp/response.html -w "%{http_code}" \
+                --max-time 15 \
+                --connect-timeout 10 \
+                "$TARGET_URL" 2>/dev/null || echo "000")
+            fi
 
             if [ "$http_code" = "200" ]; then
               body_len=$(wc -c < /tmp/response.html)
@@ -49,7 +76,19 @@ jobs:
               exit 0
             fi
 
-            # 每 60s 输出一次，或前 30s 每次输出
+            # Track consecutive DNS failures
+            if [ "$http_code" = "000" ]; then
+              dns_fails=$((dns_fails + 1))
+            else
+              dns_fails=0
+            fi
+
+            # Warn about persistent DNS issues
+            if [ $dns_fails -ge 5 ] && [ $((dns_fails % 5)) -eq 0 ]; then
+              echo "⚠️  连续 $dns_fails 次 DNS/连接失败，域名可能尚未生效"
+            fi
+
+            # Output every 60s or in first 30s
             if [ $((elapsed % 60)) -eq 0 ] || [ $elapsed -lt 30 ]; then
               echo "⏳ [${elapsed}s] HTTP $http_code (第 $attempt 次)"
             fi
@@ -61,5 +100,5 @@ jobs:
           echo ""
           echo "─────────────────────────────────"
           echo "❌ 部署超时！等待 ${MAX_WAIT}s 后仍未返回 HTTP 200"
-          echo "请检查 Zeabur 部署日志"
+          echo "请检查 Zeabur 部署日志和域名配置"
           exit 1
