@@ -27,6 +27,7 @@ async function createFullTask(): Promise<void> {
     const res = await fetch(`http://localhost:${SERVER_PORT}/api/scrape/tasks/full`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: '{}',
     });
     const data = (await res.json()) as { task_id?: string; pid?: number };
     if (res.ok) {
