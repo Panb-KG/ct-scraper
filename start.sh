@@ -28,10 +28,10 @@ else
   exit 1
 fi
 
-# 2. 启动 Next.js 前端
+# 2. 启动 Next.js 前端（使用 standalone 输出）
 echo "--- Starting Next.js on port $PORT ---"
 cd /app/web
-node node_modules/next/dist/bin/next start --hostname "$HOST" --port "$PORT" &
+node server.js --hostname "$HOST" --port "$PORT" &
 WEB_PID=$!
 cd /app
 
