@@ -28,7 +28,7 @@ async function createFullTask(): Promise<void> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
-    const data = await res.json();
+    const data = (await res.json()) as { task_id?: string; pid?: number };
     if (res.ok) {
       console.log(`[auto-scrape] ✅ 全量爬取任务已创建: task_id=${data.task_id}, pid=${data.pid}`);
     } else {
