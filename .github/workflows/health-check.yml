@@ -1,0 +1,65 @@
+name: 🩺 Post-Deploy Health Check
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ⏳ Wait for Zeabur deployment & test site
+        env:
+          TARGET_URL: "https://www.xn--eqr323h8rk.xn--fiq"
+          MAX_WAIT: 600
+          INTERVAL: 15
+        run: |
+          echo "🎯 目标: $TARGET_URL"
+          echo "⏱  最长等待: ${MAX_WAIT}s, 检测间隔: ${INTERVAL}s"
+          echo "─────────────────────────────────"
+
+          elapsed=0
+          attempt=0
+
+          while [ $elapsed -lt $MAX_WAIT ]; do
+            attempt=$((attempt + 1))
+
+            http_code=$(curl -s -o /tmp/response.html -w "%{http_code}" \
+              --max-time 10 \
+              "$TARGET_URL" 2>/dev/null || echo "000")
+
+            if [ "$http_code" = "200" ]; then
+              body_len=$(wc -c < /tmp/response.html)
+              echo ""
+              echo "─────────────────────────────────"
+              echo "✅ 部署成功！HTTP $http_code (第 $attempt 次, 耗时 ${elapsed}s)"
+              echo "📄 页面大小: ${body_len} bytes"
+
+              if [ "$body_len" -lt 100 ]; then
+                echo "⚠️  页面内容过短 (< 100 bytes)，可能尚未就绪"
+                exit 1
+              fi
+
+              echo "🔍 页面标题:"
+              grep -oP '<title>\K[^<]+' /tmp/response.html 2>/dev/null || echo "(无 title 标签)"
+              exit 0
+            fi
+
+            # 每 60s 输出一次，或前 30s 每次输出
+            if [ $((elapsed % 60)) -eq 0 ] || [ $elapsed -lt 30 ]; then
+              echo "⏳ [${elapsed}s] HTTP $http_code (第 $attempt 次)"
+            fi
+
+            sleep $INTERVAL
+            elapsed=$((elapsed + INTERVAL))
+          done
+
+          echo ""
+          echo "─────────────────────────────────"
+          echo "❌ 部署超时！等待 ${MAX_WAIT}s 后仍未返回 HTTP 200"
+          echo "请检查 Zeabur 部署日志"
+          exit 1
