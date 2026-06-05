@@ -14,7 +14,7 @@ export SERVER_PORT=${SERVER_PORT:-3001}
 # 1. 启动 Fastify 后端
 echo "--- Starting Fastify server on port $SERVER_PORT ---"
 cd /app/server
-node dist/index.js &
+node dist/index.js 2>&1 &
 SERVER_PID=$!
 cd /app
 sleep 3
@@ -28,10 +28,10 @@ fi
 # 2. 启动 Next.js 前端
 echo "--- Starting Next.js on port $PORT ---"
 cd /app/web
-node node_modules/next/dist/bin/next start --hostname "$HOST" --port "$PORT" &
+node node_modules/next/dist/bin/next start --hostname "$HOST" --port "$PORT" 2>&1 &
 WEB_PID=$!
 cd /app
-sleep 3
+sleep 5
 if kill -0 $WEB_PID 2>/dev/null; then
   echo "Web started (PID $WEB_PID)"
 else
@@ -44,6 +44,11 @@ echo "=== All services started ==="
 echo "  API:  http://localhost:$SERVER_PORT"
 echo "  Web:  http://localhost:$PORT"
 echo ""
+
+# 简单健康检查
+echo "Testing health endpoints..."
+curl -s http://localhost:$SERVER_PORT/api/health && echo ""
+curl -s -o /dev/null -w "Web HTTP %{http_code}" http://localhost:$PORT/ && echo ""
 
 # 保持容器运行
 while kill -0 $SERVER_PID 2>/dev/null && kill -0 $WEB_PID 2>/dev/null; do
