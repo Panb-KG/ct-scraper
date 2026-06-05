@@ -29,7 +29,7 @@ COPY scraper/ ./
 RUN npm run build
 # 安装 Playwright 浏览器（使用 scraper 自身依赖的精确版本）
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN npx playwright install chromium --with-deps
+RUN npx playwright install chromium
 
 # ---- 最终阶段 ----
 FROM node:20-alpine
