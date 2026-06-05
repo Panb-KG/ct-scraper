@@ -45,6 +45,16 @@ echo "  API:  http://localhost:$SERVER_PORT"
 echo "  Web:  http://localhost:$PORT"
 echo ""
 
-# 保持容器运行，任一进程退出则整体退出
-wait $SERVER_PID $WEB_PID
-exit $?
+# 保持容器运行
+while kill -0 $SERVER_PID 2>/dev/null && kill -0 $WEB_PID 2>/dev/null; do
+  sleep 1
+done
+
+# 任一进程退出，整体退出
+if ! kill -0 $SERVER_PID 2>/dev/null; then
+  echo "ERROR: Fastify server exited"
+fi
+if ! kill -0 $WEB_PID 2>/dev/null; then
+  echo "ERROR: Next.js server exited"
+fi
+exit 1
