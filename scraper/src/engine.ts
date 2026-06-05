@@ -374,7 +374,7 @@ export async function runScraperWithTask(taskId: number): Promise<void> {
   d.close();
 
   const browser = await chromium.launch({
-    headless: 'old',  // 使用旧版 headless 模式，避免需要单独安装 headless shell
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
