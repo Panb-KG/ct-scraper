@@ -28,10 +28,12 @@ else
   exit 1
 fi
 
-# 2. 启动 Next.js 前端（使用 standalone 输出）
+# 2. 启动 Next.js 前端（standalone 模式通过环境变量配置）
 echo "--- Starting Next.js on port $PORT ---"
+export PORT
+export HOSTNAME="$HOST"
 cd /app/web
-node server.js --hostname "$HOST" --port "$PORT" &
+node server.js &
 WEB_PID=$!
 cd /app
 
