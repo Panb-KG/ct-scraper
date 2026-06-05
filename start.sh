@@ -1,10 +1,9 @@
 #!/bin/sh
-set -e
 
 echo "=== Starting ct-scraper ==="
 echo "NODE_ENV: $NODE_ENV"
 echo "PORT: $PORT"
-echo "Current directory: $(pwd)"
+echo "PWD: $(pwd)"
 echo ""
 
 # 默认配置
@@ -18,8 +17,6 @@ cd /app/server
 node dist/index.js &
 SERVER_PID=$!
 cd /app
-
-# 等待后端启动
 sleep 3
 if kill -0 $SERVER_PID 2>/dev/null; then
   echo "Server started (PID $SERVER_PID)"
@@ -34,29 +31,13 @@ cd /app/web
 node node_modules/next/dist/bin/next start --hostname "$HOST" --port "$PORT" &
 WEB_PID=$!
 cd /app
-
-sleep 2
+sleep 3
 if kill -0 $WEB_PID 2>/dev/null; then
   echo "Web started (PID $WEB_PID)"
 else
   echo "ERROR: Web failed to start"
   exit 1
 fi
-
-# 3. 部署后自动全量爬取（已禁用，等待 Playwright 依赖修复）
-# if [ "$AUTO_SCRAPE" = "true" ]; then
-#   echo ""
-#   echo "=== Auto-scrape enabled, creating full-site task ==="
-#   cd /app/server
-#   node dist/auto-scrape.js &
-#   cd /app
-#   echo "Auto-scrape bootstrapper started (runs in background)"
-#   echo "Monitor: curl http://localhost:$SERVER_PORT/api/scrape/stats"
-# else
-  echo ""
-  echo "Auto-scrape temporarily disabled (Playwright deps issue)"
-#   echo "Manual trigger: cd /app/scraper && node dist/scraper.js --pages 5"
-# fi
 
 echo ""
 echo "=== All services started ==="
@@ -66,3 +47,4 @@ echo ""
 
 # 保持容器运行，任一进程退出则整体退出
 wait $SERVER_PID $WEB_PID
+exit $?
